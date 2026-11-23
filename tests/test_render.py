@@ -52,10 +52,17 @@ def test_empty_renders_blank(name, soffice, tmp_path):
 
 
 def test_drawio_roundtrip_imports(fixture_file, drawio, tmp_path):
-    """draw.io must be able to import what we write (second independent reader)."""
+    """draw.io must import what we write (second independent reader): same pages, same names.
+
+    Exported as XML, not PNG: draw.io refuses to export an empty diagram to PNG.
+    """
+    from drawio2vsdx.reader.parse import parse_file
+
     out = tmp_path / "out.vsdx"
     convert(fixture_file, out)
-    tools.drawio_export(drawio, out, tmp_path / "rt.png")
+    back = tools.drawio_export(drawio, out, tmp_path / "rt.drawio", fmt="xml", extra=["--uncompressed"])
+    names = [p.name for p in parse_file(back).pages]
+    assert names == [p.name for p in parse_file(fixture_file).pages]
 
 
 @pytest.mark.parametrize("name,threshold", sorted(SSIM_THRESHOLDS.items()))

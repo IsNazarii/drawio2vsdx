@@ -59,15 +59,17 @@ jobs:
           python -m drawio2vsdx.validate (Get-ChildItem out -Filter *.vsdx).FullName
       - name: Build drawio2vsdx.exe
         shell: pwsh
-        run: pyinstaller --onefile --name drawio2vsdx --collect-data drawio2vsdx scripts/pyinstaller_entry.py
+        run: pyinstaller --onefile --name drawio2vsdx --paths . --hidden-import drawio2vsdx.template --add-data "drawio2vsdx/template/blank.vsdx;drawio2vsdx/template" scripts/pyinstaller_entry.py
       - name: Smoke test exe (Cyrillic path with spaces)
         shell: pwsh
         run: |
           $dir = Join-Path $env:RUNNER_TEMP "Документи\схема 1"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           Copy-Item tests/fixtures/features/multipage-compressed.drawio (Join-Path $dir "Назар діаграма.drawio")
-          ./dist/drawio2vsdx.exe (Join-Path $dir "Назар діаграма.drawio")
-          if ($LASTEXITCODE -ne 0) { exit 1 }
+          ./dist/drawio2vsdx.exe --version
+          ./dist/drawio2vsdx.exe -v (Join-Path $dir "Назар діаграма.drawio") 2>&1 | Out-Host
+          if ($LASTEXITCODE -ne 0) { Write-Host "exit code $LASTEXITCODE"; exit 1 }
+          Get-ChildItem $dir
           python -m drawio2vsdx.validate (Join-Path $dir "Назар діаграма.vsdx")
       - uses: actions/upload-artifact@v4
         with:

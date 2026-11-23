@@ -87,6 +87,8 @@ def soffice_png(exe: Path, vsdx: Path, outdir: Path) -> Path:
         str(vsdx),
     ]
     res = run(cmd)
+    if res.returncode == 81:  # first start: profile created, LibreOffice asks for a restart
+        res = run(cmd)
     out = outdir / (vsdx.stem + ".png")
     if not out.exists():
         raise RuntimeError(f"LibreOffice conversion failed ({res.returncode}): {res.stdout[-1000:]} {res.stderr[-1000:]}")

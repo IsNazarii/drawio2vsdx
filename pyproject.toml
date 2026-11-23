@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drawio2vsdx"
+dynamic = ["version"]
+description = "Convert draw.io diagrams to editable Microsoft Visio .vsdx files"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["lxml>=5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "Pillow>=10", "numpy>=1.26"]
+exe = ["pyinstaller>=6"]
+
+[project.scripts]
+drawio2vsdx = "drawio2vsdx.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "drawio2vsdx.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["drawio2vsdx*"]
+
+[tool.setuptools.package-data]
+"drawio2vsdx.template" = ["*.vsdx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "render: needs LibreOffice and/or draw.io Desktop (skipped when not installed)",
+  "oracle: needs draw.io Desktop v26.0.16",
+]
+
+[tool.ruff]
+line-length = 120

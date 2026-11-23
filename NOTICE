@@ -1,0 +1,11 @@
+drawio2vsdx
+
+This product includes material derived from draw.io (https://github.com/jgraph/drawio),
+Copyright (c) JGraph Ltd, licensed under the Apache License, Version 2.0:
+
+  - drawio2vsdx/template/blank.vsdx: package skeleton (content types, relationships,
+    document properties, visio/document.xml stylesheets, "Dynamic connector" master)
+    extracted from src/main/webapp/js/diagramly/vsdx/VsdxExport.js (tag v24.7.17)
+    by scripts/build_provisional_template.py.
+
+You may obtain a copy of the Apache License at http://www.apache.org/licenses/LICENSE-2.0

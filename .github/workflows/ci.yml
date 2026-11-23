@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install renderers (draw.io, LibreOffice, xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libreoffice-draw libasound2t64 libgbm1 libnss3 libxss1 libsecret-1-0
+          LATEST=$(curl -fsSL https://api.github.com/repos/jgraph/drawio-desktop/releases/latest | python3 -c 'import json,sys;print(json.load(sys.stdin)["tag_name"][1:])')
+          curl -fL -o drawio.deb "https://github.com/jgraph/drawio-desktop/releases/download/v${LATEST}/drawio-amd64-${LATEST}.deb"
+          sudo apt-get install -y ./drawio.deb
+          mkdir -p ~/tools/drawio-26.0.16 && cd ~/tools/drawio-26.0.16
+          curl -fL -o app.AppImage https://github.com/jgraph/drawio-desktop/releases/download/v26.0.16/drawio-x86_64-26.0.16.AppImage
+          chmod +x app.AppImage && ./app.AppImage --appimage-extract >/dev/null && rm app.AppImage
+      - name: Install package
+        run: pip install -e ".[dev]"
+      - name: Tests (incl. render)
+        run: pytest -v -rs
+      - name: Oracle export (draw.io v26.0.16)
+        continue-on-error: true  # informational until the oracle CLI behaviour is verified
+        run: xvfb-run -a python scripts/make_oracle.py
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.13'
+        with:
+          name: oracle-vsdx
+          path: tests/oracle/*.vsdx
+          if-no-files-found: ignore
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: pip install -e ".[dev,exe]"
+      - name: Unit + structure tests
+        run: pytest -v -rs
+      - name: Convert all fixtures (no draw.io)
+        shell: pwsh
+        run: |
+          drawio2vsdx tests/fixtures/features -o out --report out/report.md
+          python -m drawio2vsdx.validate (Get-ChildItem out -Filter *.vsdx).FullName
+      - name: Build drawio2vsdx.exe
+        shell: pwsh
+        run: pyinstaller --onefile --name drawio2vsdx --collect-data drawio2vsdx scripts/pyinstaller_entry.py
+      - name: Smoke test exe (Cyrillic path with spaces)
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "Документи\схема 1"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item tests/fixtures/features/multipage-compressed.drawio (Join-Path $dir "Назар діаграма.drawio")
+          ./dist/drawio2vsdx.exe (Join-Path $dir "Назар діаграма.drawio")
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          python -m drawio2vsdx.validate (Join-Path $dir "Назар діаграма.vsdx")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drawio2vsdx-exe
+          path: dist/drawio2vsdx.exe

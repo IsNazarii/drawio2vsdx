@@ -15,6 +15,7 @@ from pathlib import Path
 
 from lxml import etree
 
+from ._console import utf8_stdio
 from .writer.xmlutil import NS_CT, NS_R, NS_RELS, NS_VISIO, REL_DOCUMENT
 
 _PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
@@ -134,6 +135,7 @@ def check_vsdx(source: Path | bytes) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    utf8_stdio()
     argv = sys.argv[1:] if argv is None else argv
     bad = 0
     for arg in argv:

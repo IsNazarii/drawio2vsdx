@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
+from ._console import utf8_stdio
 from .convert import ConversionError, ConvertOptions, convert
 from .reader.decode import DecodeError
 from .report import Level, Report
@@ -66,12 +67,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    utf8_stdio()
     args = build_parser().parse_args(argv)
     level = logging.WARNING if args.quiet else logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=level, format="%(message)s")
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
 
     report = Report()
     try:

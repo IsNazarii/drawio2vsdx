@@ -42,3 +42,19 @@ def test_output_collision(tmp_path):
     shutil.copy(FEATURES / "empty.drawio", tmp_path / "in" / "x.drawio")
     shutil.copy(FEATURES / "embedded-svg.drawio.svg", tmp_path / "in" / "x.drawio.svg")
     assert main([str(tmp_path / "in"), "-o", str(tmp_path / "out"), "-q"]) == 1
+
+
+def test_non_utf8_console(tmp_path):
+    """Windows CI pipes are cp1252: Cyrillic paths/page names must not crash CLI or validator."""
+    import os
+    import subprocess
+    import sys
+
+    d = tmp_path / "схема 1"
+    d.mkdir()
+    src = d / "Назар.drawio"
+    shutil.copy(FEATURES / "multipage-compressed.drawio", src)
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+    for args in (["-m", "drawio2vsdx", "-v", str(src)], ["-m", "drawio2vsdx.validate", str(d / "Назар.vsdx")]):
+        res = subprocess.run([sys.executable, *args], capture_output=True, env=env, timeout=60)
+        assert res.returncode == 0, res.stderr.decode("utf-8", "replace")
